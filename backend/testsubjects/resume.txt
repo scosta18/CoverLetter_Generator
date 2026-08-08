@@ -1,0 +1,26 @@
+Sandro
+Software Developer
+
+SUMMARY
+Aspiring backend developer with hands-on experience building REST APIs using
+Python, FastAPI, and SQLAlchemy. Comfortable working across the full request
+lifecycle — routing, data validation, database persistence, and testing.
+
+SKILLS
+Python, FastAPI, Flask, SQLAlchemy, SQLite, REST API design, Pydantic,
+Git, Postman/Swagger, basic AI API integration (Google Gemini)
+
+PROJECTS
+Portfolio API (FastAPI) — Built a REST API to manage a personal portfolio of
+projects, with full CRUD endpoints (GET/POST/PUT/DELETE), request validation
+via Pydantic, and persistent storage using SQLAlchemy + SQLite. Organized the
+codebase into models, schemas, and routers following standard FastAPI project
+structure.
+
+AI Cover Letter Generator — Built a Python pipeline that uses the Gemini API
+to generate tailored cover letters from a resume and job description,
+demonstrating integration with third-party AI APIs and environment-based
+secret management.
+
+EDUCATION
+[Your school / self-taught / bootcamp — fill in]

@@ -1,0 +1,23 @@
+Sandro [Last Name]
+[Your Email]
+[Your Phone Number]
+[Your Location]
+
+[Date]
+
+TechNova Solutions
+[Company Address]
+
+Dear Hiring Manager,
+
+I am writing to express my strong interest in the Junior Backend Developer position at TechNova Solutions. As a backend developer skilled in Python, FastAPI, Flask, and database management, I am eager to contribute to building and maintaining the REST APIs that power your web and mobile products.
+
+My hands-on experience directly aligns with your requirements. Recently, I developed a Portfolio REST API using FastAPI, Pydantic, and SQLAlchemy paired with SQLite. Through this project, I managed the entire request lifecycle—from routing and request validation to persistent storage—while implementing full CRUD endpoints. I structured the codebase following standard architecture practices using models, schemas, and routers, establishing a clear framework for clean, testable code and seamless API contract collaboration.
+
+In addition to core database and API design, I have practical exposure to AI integration. I built a Python pipeline utilizing the Google Gemini API to generate tailored text from input data, implementing environment-based secret management for secure API key handling. This project demonstrated my ability to integrate third-party services and stay current with emerging technology.
+
+I am enthusiastic about the opportunity to bring my foundation in Python backend development and fast learning mindset to TechNova Solutions. Thank you for your time and consideration. I look forward to discussing how my background fits your team.
+
+Sincerely,
+
+Sandro [Last Name]

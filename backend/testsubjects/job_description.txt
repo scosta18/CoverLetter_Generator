@@ -1,0 +1,22 @@
+Junior Backend Developer — TechNova Solutions
+
+We're looking for a Junior Backend Developer to join our small engineering
+team. You'll help build and maintain REST APIs that power our web and mobile
+products.
+
+Responsibilities:
+- Design and implement RESTful API endpoints
+- Work with relational databases (PostgreSQL/SQLite)
+- Write clean, testable Python code
+- Collaborate with frontend engineers on API contracts
+- Participate in code reviews
+
+Requirements:
+- Familiarity with Python and a web framework (Flask, FastAPI, or Django)
+- Understanding of REST API principles and HTTP methods
+- Basic knowledge of SQL and database design
+- Eagerness to learn and grow in a fast-paced startup environment
+
+Nice to have:
+- Experience with SQLAlchemy or another ORM
+- Exposure to AI/LLM APIs
