@@ -1,1 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+python-dotenv
 google-genai
+fpdf2
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
