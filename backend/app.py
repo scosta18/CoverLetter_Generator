@@ -17,6 +17,7 @@ from schemas import UserCreate, Token
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 from fastapi.responses import Response
 from fpdf import FPDF
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
@@ -28,6 +29,13 @@ Base.metadata.create_all(bind=engine)
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def get_db():
     db = SessionLocal()
@@ -102,27 +110,35 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
+from fpdf.enums import WrapMode, XPos, YPos
+
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
 def letter_to_pdf_bytes(letter_text: str) -> bytes:
     pdf = FPDF(format="Letter")
-    pdf.set_margins(left=25, top=25, right=25)
-    pdf.set_auto_page_break(auto=True, margin=25)
+    pdf.set_margins(left=18, top=18, right=18)
+    pdf.set_auto_page_break(auto=True, margin=18)
     pdf.add_page()
-    pdf.set_font("Times", size=12)
+    pdf.add_font("DejaVu", "", os.path.join(FONT_DIR, "DejaVuSans.ttf"))
+    pdf.add_font("DejaVu", "B", os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf"))
+    pdf.set_font("DejaVu", size=10.5)
 
-    # Split into paragraphs on blank lines — the AI's letter has real
-    # paragraph breaks (contact block, date, salutation, body, closing)
     paragraphs = [p.strip() for p in letter_text.split("\n\n") if p.strip()]
 
     for paragraph in paragraphs:
-        # Lines within a paragraph (e.g. the contact info block, or
-        # multi-line address) should stay on separate lines, not merge
         lines = paragraph.split("\n")
         if len(lines) > 1:
             for line in lines:
-                pdf.multi_cell(0, 7, line, align="L")
+                pdf.multi_cell(
+                    0, 5.5, line, align="L", wrapmode=WrapMode.WORD,
+                    new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+                )
         else:
-            pdf.multi_cell(0, 7, paragraph, align="J")
-        pdf.ln(4)  # gap between paragraphs
+            pdf.multi_cell(
+                0, 5.5, paragraph, align="J", wrapmode=WrapMode.WORD,
+                new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+            )
+        pdf.ln(2.5)
 
     return bytes(pdf.output())
 
@@ -187,3 +203,4 @@ def download_cover_letter_pdf(letter_id: int, db: Session = Depends(get_db), cur
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="cover_letter_{letter_id}.pdf"'}
     )
+
