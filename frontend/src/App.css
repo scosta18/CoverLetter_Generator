@@ -126,6 +126,16 @@
   }
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mt-lg {
+  margin-top: 16px;
+}
+
 /* ---------- Cards ---------- */
 
 .card {

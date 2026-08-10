@@ -12,7 +12,19 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class ExperienceCreate(BaseModel):
+    title: str
+    description: str
+    skills: str | None = None
 
+class ExperienceResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    skills: str | None
+
+    class Config:
+        from_attributes = True
 
 class CoverLetterResponse(BaseModel):
     id: int

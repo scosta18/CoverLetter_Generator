@@ -19,6 +19,9 @@ from fastapi.responses import Response
 from fpdf import FPDF
 from fastapi.middleware.cors import CORSMiddleware
 
+from models import Experience
+from schemas import ExperienceCreate, ExperienceResponse
+
 
 
 
@@ -37,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# FastAPI dependency that yields a DB session per-request and closes it afterwards
 def get_db():
     db = SessionLocal()
     try:
@@ -44,10 +48,30 @@ def get_db():
     finally:
         db.close()
 
-def read_resume() -> str:
-    with open("testsubjects/resume.txt", "r", encoding="utf-8") as f:
-        return f.read()
+# def read_resume() -> str:
+#     with open("testsubjects/resume.txt", "r", encoding="utf-8") as f:
+#         return f.read()
 
+# Builds a plain-text "resume" for the user from their saved Experience entries,
+# to be fed to Gemini as candidate background
+def build_resume_text(user: User, db: Session) -> str:
+    experiences = db.query(Experience).filter(Experience.user_id == user.id).all()
+    if not experiences:
+        raise HTTPException(
+            status_code=400,
+            detail="No experience entries found. Add at least one via /api/profile/experiences before generating a letter."
+        )
+
+    parts = [f"Candidate: {user.username}"]
+    for exp in experiences:
+        entry = f"- {exp.title}: {exp.description}"
+        if exp.skills:
+            entry += f" (Skills: {exp.skills})"
+        parts.append(entry)
+
+    return "\n".join(parts)
+
+# Asks Gemini to pull the job title and company name out of a raw job posting
 def extract_job_info(job_description: str) -> JobInfo:
     response = client.models.generate_content(
         model="gemini-flash-latest",
@@ -64,6 +88,7 @@ def extract_job_info(job_description: str) -> JobInfo:
     )
     return JobInfo.model_validate_json(response.text)
 
+# Asks Gemini to write the actual cover letter text, tailored to the resume + job description
 def generate_letter_text(resume:str, job_description: str) -> str:
     prompt = f"""You are a professional cover letter writer. Write a concise,
     compelling cover letter tailored to the job description below, using the
@@ -94,6 +119,8 @@ def generate_letter_text(resume:str, job_description: str) -> str:
     )
     return response.text
 
+# FastAPI dependency that decodes the bearer token and loads the current User,
+# raising 401 if the token or user is invalid
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_error = HTTPException(status_code=401, detail="Invalid or expired token")
     try:
@@ -114,6 +141,7 @@ from fpdf.enums import WrapMode, XPos, YPos
 
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 
+# Renders the generated cover letter text into a formatted PDF and returns the raw bytes
 def letter_to_pdf_bytes(letter_text: str) -> bytes:
     pdf = FPDF(format="Letter")
     pdf.set_margins(left=18, top=18, right=18)
@@ -143,6 +171,7 @@ def letter_to_pdf_bytes(letter_text: str) -> bytes:
     return bytes(pdf.output())
 
 
+# Creates a new user with a bcrypt-hashed password, rejecting duplicate usernames
 @app.post("/auth/register", status_code=201)
 def register(payload: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == payload.username).first()
@@ -154,6 +183,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "User created"}
 
+# Verifies username/password and returns a JWT access token
 @app.post("/auth/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
@@ -163,14 +193,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": token, "token_type": "bearer"}
           
 
+# Generates a new cover letter from a job description (using the current user's saved
+# experience as background) and saves it to the DB
 @app.post("/api/cover-letters", response_model=CoverLetterResponse, status_code=201)
 def create_cover_letter(payload: JobDescriptionInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    resume = read_resume()
+    resume = build_resume_text(current_user, db)
     job_info = extract_job_info(payload.job_description)
     letter = generate_letter_text(resume, payload.job_description)
+
     entry = CoverLetterEntry(
-        job_title = job_info.job_title,
-        company_name = job_info.company_name,
+        job_title=job_info.job_title,
+        company_name=job_info.company_name,
         job_description=payload.job_description,
         generated_letter=letter
     )
@@ -179,10 +212,12 @@ def create_cover_letter(payload: JobDescriptionInput, db: Session = Depends(get_
     db.refresh(entry)
     return entry
 
+# Lists all generated cover letters, newest first
 @app.get("/api/cover-letters", response_model=List[CoverLetterResponse])
 def list_cover_letters(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(CoverLetterEntry).order_by(CoverLetterEntry.id.desc()).all()
 
+# Fetches a single cover letter by id, 404s if it doesn't exist
 @app.get("/api/cover-letters/{letter_id}", response_model=CoverLetterResponse)
 def get_cover_letter(letter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     entry = db.query(CoverLetterEntry).filter(CoverLetterEntry.id == letter_id).first()
@@ -190,6 +225,7 @@ def get_cover_letter(letter_id: int, db: Session = Depends(get_db), current_user
         raise HTTPException(status_code=404, detail="Cover letter not found")
     return entry
 
+# Renders a saved cover letter as a PDF and returns it as a downloadable attachment
 @app.get("/api/cover-letters/{letter_id}/pdf")
 def download_cover_letter_pdf(letter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     entry = db.query(CoverLetterEntry).filter(CoverLetterEntry.id == letter_id).first()
@@ -204,3 +240,43 @@ def download_cover_letter_pdf(letter_id: int, db: Session = Depends(get_db), cur
         headers={"Content-Disposition": f'attachment; filename="cover_letter_{letter_id}.pdf"'}
     )
 
+# Adds a new experience entry (title, description, skills) to the current user's profile
+@app.post("/api/profile/experiences", response_model=ExperienceResponse, status_code=201)
+def create_experience(payload: ExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    exp = Experience(
+        user_id=current_user.id,
+        title=payload.title,
+        description=payload.description,
+        skills=payload.skills,
+    )
+    db.add(exp)
+    db.commit()
+    db.refresh(exp)
+    return exp
+
+# Lists all experience entries belonging to the current user
+@app.get("/api/profile/experiences", response_model=List[ExperienceResponse])
+def list_experiences(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(Experience).filter(Experience.user_id == current_user.id).all()
+
+# Overwrites an existing experience entry owned by the current user, 404s if not found/not theirs
+@app.put("/api/profile/experiences/{experience_id}", response_model=ExperienceResponse)
+def update_experience(experience_id: int, payload: ExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    exp = db.query(Experience).filter(Experience.id == experience_id, Experience.user_id == current_user.id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Experience not found")
+    exp.title = payload.title
+    exp.description = payload.description
+    exp.skills = payload.skills
+    db.commit()
+    db.refresh(exp)
+    return exp
+
+# Deletes an experience entry owned by the current user, 404s if not found/not theirs
+@app.delete("/api/profile/experiences/{experience_id}", status_code=204)
+def delete_experience(experience_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    exp = db.query(Experience).filter(Experience.id == experience_id, Experience.user_id == current_user.id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Experience not found")
+    db.delete(exp)
+    db.commit()

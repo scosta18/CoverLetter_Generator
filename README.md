@@ -1,16 +1,14 @@
 # Cover Letter Generator
 
-A small FastAPI backend that generates tailored cover letters. You give it a
-job description, it reads your resume, sends both to Gemini, and hands back
-a cover letter — plus a PDF if you want one to actually send.
-
-Right now this is backend-only (no frontend yet). Everything is driven
-through the API / Swagger docs.
+A FastAPI backend + React frontend that generates tailored cover letters.
+You give it a job description, it reads your resume, sends both to Gemini,
+and hands back a cover letter — plus a PDF if you want one to actually send.
 
 ## How it works
 
 1. You register / log in and get a JWT.
-2. You POST a job description to `/api/cover-letters`.
+2. You paste a job description into the frontend (or POST it to
+   `/api/cover-letters` directly).
 3. The backend:
    - reads your resume from `backend/testsubjects/resume.txt`
    - asks Gemini to pull the job title and company name out of the job description
@@ -24,12 +22,19 @@ back to `[Your Name]`-style placeholders instead of making it up.
 
 ## Stack
 
+**Backend**
 - FastAPI + SQLAlchemy + SQLite
 - Google Gemini (`google-genai`, model: `gemini-flash-latest`) for extraction + generation
 - JWT auth (python-jose) with bcrypt password hashing (passlib)
 - fpdf2 for PDF export
 
+**Frontend**
+- React 19 + Vite
+- Plain `fetch` calls to the backend API (no extra HTTP/state libraries)
+
 ## Setup
+
+### Backend
 
 ```bash
 cd backend
@@ -54,8 +59,20 @@ Run the API:
 uvicorn app:app --reload
 ```
 
-Docs are at `http://127.0.0.1:8000/docs` — easiest way to try everything out
-without a frontend.
+Docs are at `http://127.0.0.1:8000/docs` — handy for trying endpoints without
+the frontend.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dev server talks to the backend at `http://127.0.0.1:8000` (hardcoded in
+`frontend/src/App.jsx` — update that if your backend runs elsewhere). Make
+sure the backend is running first.
 
 ## API
 
@@ -73,9 +90,9 @@ send it as `Authorization: Bearer <token>` on everything else.
 
 ## Notes / TODO
 
-- No frontend yet — this is just the API for now.
 - The resume is currently read from a fixed file path rather than uploaded
   per-request/per-user — fine for one person's use, won't scale to multiple
   users as-is.
+- The frontend's API base URL is hardcoded rather than pulled from an env var.
 - `cover_letters.db` gets created automatically on first run; it's not meant
   to be committed.
