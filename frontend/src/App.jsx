@@ -23,6 +23,16 @@ function App() {
   const [expBusy, setExpBusy] = useState(false);
   const [deletingExpId, setDeletingExpId] = useState(null);
 
+
+  const [schools, setSchools] = useState([]);
+  const [sclBusy, setSclBusy] = useState(false);
+  const [sclTitle, setSclTitle] = useState("");
+  const [sclDegree, setSclDegree] = useState("");
+  const [sclSkill, setSclSkill] = useState("");
+  const [sclStartDate, setSclStartDate] = useState("");
+  const [sclEndDate, setSclEndDate] = useState("");
+  const [deletingSclId, setDeletingSclId] = useState(null);
+
   async function register(e) {
     e.preventDefault();
     setAuthBusy(true);
@@ -76,6 +86,7 @@ function App() {
     setPassword("");
     setLetters([]);
     setExperiences([]);
+    setSchool([]);
     setJobDescription("");
     setGenStatus({ text: "", error: false });
   }
@@ -147,7 +158,20 @@ function App() {
     const res = await fetch(`${API_BASE}/api/profile/experiences`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) setExperiences(await res.json());
+
+    if (res.ok) {
+      setExperiences(await res.json());
+    }
+  }
+
+  async function loadSchools() {
+    const res = await fetch(`${API_BASE}/api/profile/schools`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      setSchools(await res.json());
+    }
   }
 
   async function addExperience(e) {
@@ -177,6 +201,60 @@ function App() {
       setExpBusy(false);
     }
   }
+  
+async function deleteSchool(id) {
+  setDeletingSclId(id);
+
+  try {
+    await fetch(`${API_BASE}/api/profile/schools/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    loadSchools();
+  } finally {
+    setDeletingSclId(null);
+  }
+}
+
+async function addSchool(e) {
+  e.preventDefault();
+  setSclBusy(true);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/profile/schools`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        school_name: sclTitle,
+        degree_type: sclDegree,
+        skills: sclSkill || null,
+        start_date: sclStartDate || null,
+        end_date: sclEndDate || null,
+      }),
+    });
+
+    if (res.ok) {
+      setSclTitle("");
+      setSclDegree("");
+      setSclSkill("");
+      setSclStartDate("");
+      setSclEndDate("");
+
+      loadSchools();
+    } else {
+      const detail = await res.json().catch(() => null);
+      console.error(detail);
+    }
+  } finally {
+    setSclBusy(false);
+  }
+}
 
   async function deleteExperience(id) {
     setDeletingExpId(id);
@@ -192,12 +270,13 @@ function App() {
   }
 
   // Whenever we get a token (just logged in), load history + experiences
-  useEffect(() => {
-    if (token) {
-      loadHistory();
-      loadExperiences();
-    }
-  }, [token]);
+useEffect(() => {
+  if (token) {
+    loadHistory();
+    loadExperiences();
+    loadSchools();
+  }
+}, [token]);
 
   if (!token) {
     return (
@@ -273,6 +352,138 @@ function App() {
 
       <div className="app-grid">
         <div className="stack">
+
+          <section className="card">
+  <div className="school_details">
+    <h2>Schools Attended</h2>
+  </div>
+
+  <p>
+    Please list all the schools, colleges, and universities you have attended.
+  </p>
+
+  <form onSubmit={addSchool}>
+    <div className="field">
+      <label htmlFor="scl-title">School Name</label>
+      <input
+        id="scl-title"
+        placeholder="e.g. University of Maryland"
+        value={sclTitle}
+        onChange={(e) => setSclTitle(e.target.value)}
+        required
+      />
+    </div>
+
+    <div className="field">
+      <label htmlFor="degree-type">Type of Degree</label>
+      <select
+        id="degree-type"
+        name="degreeType"
+        value={sclDegree}
+        onChange={(e) => setSclDegree(e.target.value)}
+        required
+      >
+        <option value="">Select degree type</option>
+        <option value="associate">Associate's Degree</option>
+        <option value="bachelor">Bachelor's Degree</option>
+        <option value="master">Master's Degree</option>
+        <option value="doctorate">Doctorate (PhD)</option>
+        <option value="certificate">Certificate</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div className="field">
+      <label htmlFor="school-skill">Academic Skills</label>
+      <textarea
+        id="school-skill"
+        rows={3}
+        placeholder="e.g. Python, Java, SQL, Machine Learning"
+        value={sclSkill}
+        onChange={(e) => setSclSkill(e.target.value)}
+      />
+    </div>
+
+    <div className="field">
+      <label htmlFor="school-start-date">Start Date</label>
+      <input
+        type="date"
+        id="school-start-date"
+        value={sclStartDate}
+        onChange={(e) => setSclStartDate(e.target.value)}
+        required
+      />
+    </div>
+
+    <div className="field">
+      <label htmlFor="school-end-date">End Date</label>
+      <input
+        type="date"
+        id="school-end-date"
+        value={sclEndDate}
+        onChange={(e) => setSclEndDate(e.target.value)}
+      />
+    </div>
+
+    <div className="card-actions">
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={sclBusy}
+      >
+        {sclBusy && <span className="spinner" />}
+        Add School
+      </button>
+    </div>
+  </form>
+
+  {schools.length === 0 ? (
+    <p className="empty-state mt-lg">
+      No schools added yet.
+    </p>
+  ) : (
+    <div className="letter-list mt-lg">
+      {schools.map((school) => (
+        <div className="letter-card" key={school.id}>
+          <div className="letter-info">
+            <span className="letter-title">
+              {school.school_name}
+            </span>
+
+            <span className="letter-company">
+              {school.degree_type}
+            </span>
+
+            {school.skills && (
+              <span className="letter-date">
+                Skills: {school.skills}
+              </span>
+            )}
+
+            <span className="letter-date">
+              {school.start_date}{" "}
+              {school.end_date ? `- ${school.end_date}` : "- Present"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            onClick={() => deleteSchool(school.id)}
+            disabled={deletingSclId === school.id}
+          >
+            {deletingSclId === school.id ? (
+              <span className="spinner" />
+            ) : (
+              "Delete"
+            )}
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
+
           <section className="card">
             <div className="card-header-row">
               <h2>My Experience</h2>
