@@ -19,8 +19,8 @@ from fastapi.responses import Response
 from fpdf import FPDF
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import Experience
-from schemas import ExperienceCreate, ExperienceResponse
+from models import Experience, School
+from schemas import ExperienceCreate, ExperienceResponse, SchoolCreate, SchoolResponse
 
 
 
@@ -64,7 +64,7 @@ def build_resume_text(user: User, db: Session) -> str:
 
     parts = [f"Candidate: {user.username}"]
     for exp in experiences:
-        entry = f"- {exp.title}: {exp.description}"
+        entry = f"- {exp.title}" + (f" at {exp.company_name}" if exp.company_name else "") + f": {exp.description}"
         if exp.skills:
             entry += f" (Skills: {exp.skills})"
         parts.append(entry)
@@ -240,12 +240,13 @@ def download_cover_letter_pdf(letter_id: int, db: Session = Depends(get_db), cur
         headers={"Content-Disposition": f'attachment; filename="cover_letter_{letter_id}.pdf"'}
     )
 
-# Adds a new experience entry (title, description, skills) to the current user's profile
+# Adds a new experience entry (title, company, description, skills) to the current user's profile
 @app.post("/api/profile/experiences", response_model=ExperienceResponse, status_code=201)
 def create_experience(payload: ExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     exp = Experience(
         user_id=current_user.id,
         title=payload.title,
+        company_name=payload.company_name,
         description=payload.description,
         skills=payload.skills,
     )
@@ -266,6 +267,7 @@ def update_experience(experience_id: int, payload: ExperienceCreate, db: Session
     if not exp:
         raise HTTPException(status_code=404, detail="Experience not found")
     exp.title = payload.title
+    exp.company_name = payload.company_name
     exp.description = payload.description
     exp.skills = payload.skills
     db.commit()
@@ -280,3 +282,55 @@ def delete_experience(experience_id: int, db: Session = Depends(get_db), current
         raise HTTPException(status_code=404, detail="Experience not found")
     db.delete(exp)
     db.commit()
+
+
+##########
+#Adding school details
+##########
+@app.post("/api/profile/schools", response_model = SchoolResponse, status_code=201)
+def add_school(payload: SchoolCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    scl = School(
+        user_id=current_user.id,
+        school_name = payload.school_name,
+        degree_type = payload.degree_type,
+        skills = payload.skills,
+        start_date = payload.start_date,
+        end_date = payload.end_date
+    )
+    db.add(scl)
+    db.commit()
+    db.refresh(scl)
+    return scl
+
+@app.get("/api/profile/schools", response_model=List[SchoolResponse])
+def list_school(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(School).filter(School.user_id == current_user.id).all()
+
+@app.put("/api/profile/schools/{school_id}", response_model=ExperienceResponse)
+def update_school(school_id: int, payload: SchoolCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    scl = db.query(School).filter(School.id == school_id, School.user_id == current_user.id).first()
+    if not scl:
+        raise HTTPException(status_code=404, detail="School not found")
+    scl.school_name = payload.school_name
+    scl.degree_type = payload.degree_type
+    scl.skills = payload.skills
+    scl.start_date = payload.start_date
+    scl.end_date = payload.end_date
+    db.commit()
+    db.refresh(scl)
+    return scl
+
+@app.delete("/api/profile/schools/{school_id}", status_code=204)
+def delete_school(school_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    scl = db.query(School).filter(School.id == school_id, School.user_id == current_user.id).first()
+    if not scl:
+        raise HTTPException(status_code=404, detail="School not found")
+    db.delete(scl)
+    db.commit
+
+
+
+
+
+
+

@@ -18,6 +18,7 @@ function App() {
 
   const [experiences, setExperiences] = useState([]);
   const [expTitle, setExpTitle] = useState("");
+  const [expCompany, setExpCompany] = useState("");
   const [expDescription, setExpDescription] = useState("");
   const [expSkills, setExpSkills] = useState("");
   const [expBusy, setExpBusy] = useState(false);
@@ -86,7 +87,7 @@ function App() {
     setPassword("");
     setLetters([]);
     setExperiences([]);
-    setSchool([]);
+    setSchools([]);
     setJobDescription("");
     setGenStatus({ text: "", error: false });
   }
@@ -186,6 +187,7 @@ function App() {
         },
         body: JSON.stringify({
           title: expTitle,
+          company_name: expCompany || null,
           description: expDescription,
           skills: expSkills || null,
         }),
@@ -193,6 +195,7 @@ function App() {
 
       if (res.ok) {
         setExpTitle("");
+        setExpCompany("");
         setExpDescription("");
         setExpSkills("");
         loadExperiences();
@@ -354,12 +357,11 @@ useEffect(() => {
         <div className="stack">
 
           <section className="card">
-  <div className="school_details">
+  <div className="card-header-row">
     <h2>Schools Attended</h2>
   </div>
-
-  <p>
-    Please list all the schools, colleges, and universities you have attended.
+  <p className="card-hint">
+    List the schools, colleges, and universities you have attended.
   </p>
 
   <form onSubmit={addSchool}>
@@ -374,54 +376,56 @@ useEffect(() => {
       />
     </div>
 
-    <div className="field">
-      <label htmlFor="degree-type">Type of Degree</label>
-      <select
-        id="degree-type"
-        name="degreeType"
-        value={sclDegree}
-        onChange={(e) => setSclDegree(e.target.value)}
-        required
-      >
-        <option value="">Select degree type</option>
-        <option value="associate">Associate's Degree</option>
-        <option value="bachelor">Bachelor's Degree</option>
-        <option value="master">Master's Degree</option>
-        <option value="doctorate">Doctorate (PhD)</option>
-        <option value="certificate">Certificate</option>
-        <option value="other">Other</option>
-      </select>
+    <div className="field-row" style={{ "--cols": 3 }}>
+      <div className="field">
+        <label htmlFor="degree-type">Type of Degree</label>
+        <select
+          id="degree-type"
+          name="degreeType"
+          value={sclDegree}
+          onChange={(e) => setSclDegree(e.target.value)}
+          required
+        >
+          <option value="">Select degree type</option>
+          <option value="associate">Associate's Degree</option>
+          <option value="bachelor">Bachelor's Degree</option>
+          <option value="master">Master's Degree</option>
+          <option value="doctorate">Doctorate (PhD)</option>
+          <option value="certificate">Certificate</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="school-start-date">Start Date</label>
+        <input
+          type="date"
+          id="school-start-date"
+          value={sclStartDate}
+          onChange={(e) => setSclStartDate(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="school-end-date">End Date</label>
+        <input
+          type="date"
+          id="school-end-date"
+          value={sclEndDate}
+          onChange={(e) => setSclEndDate(e.target.value)}
+        />
+      </div>
     </div>
 
     <div className="field">
       <label htmlFor="school-skill">Academic Skills</label>
       <textarea
         id="school-skill"
-        rows={3}
+        rows={2}
         placeholder="e.g. Python, Java, SQL, Machine Learning"
         value={sclSkill}
         onChange={(e) => setSclSkill(e.target.value)}
-      />
-    </div>
-
-    <div className="field">
-      <label htmlFor="school-start-date">Start Date</label>
-      <input
-        type="date"
-        id="school-start-date"
-        value={sclStartDate}
-        onChange={(e) => setSclStartDate(e.target.value)}
-        required
-      />
-    </div>
-
-    <div className="field">
-      <label htmlFor="school-end-date">End Date</label>
-      <input
-        type="date"
-        id="school-end-date"
-        value={sclEndDate}
-        onChange={(e) => setSclEndDate(e.target.value)}
       />
     </div>
 
@@ -494,21 +498,32 @@ useEffect(() => {
             </p>
 
             <form onSubmit={addExperience}>
-              <div className="field">
-                <label htmlFor="exp-title">Title</label>
-                <input
-                  id="exp-title"
-                  placeholder="e.g. Backend Developer, Acme Inc."
-                  value={expTitle}
-                  onChange={(e) => setExpTitle(e.target.value)}
-                  required
-                />
+              <div className="field-row" style={{ "--cols": 2 }}>
+                <div className="field">
+                  <label htmlFor="exp-title">Title</label>
+                  <input
+                    id="exp-title"
+                    placeholder="e.g. Backend Developer"
+                    value={expTitle}
+                    onChange={(e) => setExpTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="exp-company">Company Name</label>
+                  <input
+                    id="exp-company"
+                    placeholder="e.g. Acme Inc."
+                    value={expCompany}
+                    onChange={(e) => setExpCompany(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="field">
                 <label htmlFor="exp-description">Description</label>
                 <textarea
                   id="exp-description"
-                  rows={3}
+                  rows={2}
                   placeholder="What did you do / build / own?"
                   value={expDescription}
                   onChange={(e) => setExpDescription(e.target.value)}
@@ -541,7 +556,10 @@ useEffect(() => {
                   <div className="letter-card" key={exp.id}>
                     <div className="letter-info">
                       <span className="letter-title">{exp.title}</span>
-                      <span className="letter-company">{exp.description}</span>
+                      {exp.company_name && (
+                        <span className="letter-company">{exp.company_name}</span>
+                      )}
+                      <span className="letter-date">{exp.description}</span>
                       {exp.skills && <span className="letter-date">Skills: {exp.skills}</span>}
                     </div>
                     <button
@@ -568,6 +586,7 @@ useEffect(() => {
                 <label htmlFor="job-description">Job description</label>
                 <textarea
                   id="job-description"
+                  className="textarea-lg"
                   rows={8}
                   placeholder="Paste the job posting here..."
                   value={jobDescription}

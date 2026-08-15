@@ -1,24 +1,28 @@
 # Cover Letter Generator
 
 A FastAPI backend + React frontend that generates tailored cover letters.
-You give it a job description, it reads your resume, sends both to Gemini,
-and hands back a cover letter — plus a PDF if you want one to actually send.
+You add your experience (roles, projects, skills) once, paste in a job
+description, and it sends both to Gemini and hands back a cover letter —
+plus a PDF if you want one to actually send.
 
 ## How it works
 
 1. You register / log in and get a JWT.
-2. You paste a job description into the frontend (or POST it to
+2. You add one or more **Experience** entries (title, description, skills)
+   via the frontend or `/api/profile/experiences` — these are used as your
+   background instead of a static resume file.
+3. You paste a job description into the frontend (or POST it to
    `/api/cover-letters` directly).
-3. The backend:
-   - reads your resume from `backend/testsubjects/resume.txt`
+4. The backend:
+   - builds a plain-text "resume" from your saved Experience entries
    - asks Gemini to pull the job title and company name out of the job description
    - asks Gemini to write the actual letter, tailored to that job + your background
    - saves the result (job title, company, description, generated letter) to SQLite
-4. You can list past letters, fetch one by id, or download it as a formatted PDF.
+5. You can list past letters, fetch one by id, or download it as a formatted PDF.
 
 The prompt is written to avoid inventing experience or contact details that
-aren't in your resume — if something's missing (name, email, etc.) it falls
-back to `[Your Name]`-style placeholders instead of making it up.
+aren't in your saved background — if something's missing (name, email, etc.)
+it falls back to `[Your Name]`-style placeholders instead of making it up.
 
 ## Stack
 
@@ -50,9 +54,6 @@ GEMINI_API_KEY=your-gemini-api-key
 JWT_SECRET_KEY=some-long-random-string
 ```
 
-Drop your resume as plain text at `backend/testsubjects/resume.txt` (there's
-already a sample one in that folder — replace it with your own).
-
 Run the API:
 
 ```bash
@@ -60,7 +61,9 @@ uvicorn app:app --reload
 ```
 
 Docs are at `http://127.0.0.1:8000/docs` — handy for trying endpoints without
-the frontend.
+the frontend. After registering/logging in, add at least one experience entry
+via `/api/profile/experiences` before generating a letter — the generate
+endpoint 400s until you have one.
 
 ### Frontend
 
@@ -80,6 +83,10 @@ sure the backend is running first.
 |---|---|---|---|
 | POST | `/auth/register` | – | create a user |
 | POST | `/auth/login` | – | log in, get a bearer token |
+| POST | `/api/profile/experiences` | ✅ | add an experience entry (title, description, skills) |
+| GET | `/api/profile/experiences` | ✅ | list your experience entries |
+| PUT | `/api/profile/experiences/{id}` | ✅ | update an experience entry |
+| DELETE | `/api/profile/experiences/{id}` | ✅ | delete an experience entry |
 | POST | `/api/cover-letters` | ✅ | generate a new cover letter from a job description |
 | GET | `/api/cover-letters` | ✅ | list your generated cover letters |
 | GET | `/api/cover-letters/{id}` | ✅ | fetch one |
@@ -90,9 +97,14 @@ send it as `Authorization: Bearer <token>` on everything else.
 
 ## Notes / TODO
 
-- The resume is currently read from a fixed file path rather than uploaded
-  per-request/per-user — fine for one person's use, won't scale to multiple
-  users as-is.
+- The frontend already has a "Schools Attended" form (school name, degree
+  type, skills, dates) that calls `/api/profile/schools`, but those backend
+  endpoints don't exist yet — adding a school currently fails. This is the
+  next thing to build (model + schema + CRUD routes, mirroring
+  `Experience`), and the generator should eventually fold school info into
+  the background text alongside experience entries.
 - The frontend's API base URL is hardcoded rather than pulled from an env var.
 - `cover_letters.db` gets created automatically on first run; it's not meant
   to be committed.
+- `backend/testsubjects/` (resume.txt, job_description.txt) is leftover from
+  before experience entries existed and isn't read by the app anymore.

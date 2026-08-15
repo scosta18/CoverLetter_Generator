@@ -33,6 +33,11 @@
 
 body {
   margin: 0;
+  background:
+    radial-gradient(880px 480px at 12% -8%, rgba(192, 132, 252, 0.16), transparent 60%),
+    radial-gradient(720px 420px at 100% 0%, rgba(129, 140, 248, 0.12), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 #root {
@@ -45,6 +50,38 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+/* Slim accent scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-border);
+  border-radius: 999px;
+  border: 2px solid var(--bg);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+
+* {
+  scrollbar-color: var(--accent-border) transparent;
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: var(--accent-border);
+  color: var(--text-h);
 }
 
 h1,

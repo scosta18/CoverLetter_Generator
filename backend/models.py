@@ -27,6 +27,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     experiences = relationship("Experience", back_populates="owner")
+    schools = relationship("School", back_populates="owner")
 
 class Experience(Base):
     __tablename__ = "experiences"
@@ -34,7 +35,22 @@ class Experience(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
+    company_name = Column(String, nullable=True)
     description = Column(String, nullable=False)
     skills = Column(String, nullable=True)
 
     owner = relationship("User", back_populates="experiences")
+
+
+class School(Base):
+    __tablename__ = "school"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    school_name = Column(String, nullable=False)
+    degree_type = Column(String, nullable=False)
+    skills = Column(String, nullable=True)
+    start_date = Column(String, nullable=False)
+    end_date = Column(String, nullable=True)
+
+    owner = relationship("User", back_populates="schools")
